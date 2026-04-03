@@ -9,15 +9,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 安裝 twccli 並設定認證
+        env:
+          TWCC_API_KEY: ${{ secrets.TWCC_API_KEY }}
+          TWCC_PROJECT_CODE: ${{ secrets.TWCC_PROJECT_CODE }}
         run: |
           pip install TWCC-CLI
+
+          # 修正新版 twccli 的 os.mkdir bug（目錄已存在時會 crash）
+          TWCCLI_FILE=$(python3 -c "import twccli, os; print(os.path.join(os.path.dirname(twccli.__file__), 'twccli.py'))")
+          sed -i 's/os\.mkdir(_TWCC_DATA_DIR_)/os.makedirs(_TWCC_DATA_DIR_, exist_ok=True)/g' "$TWCCLI_FILE"
+
+          # 建立認證檔
           mkdir -p ~/.twcc_data
-          cat > ~/.twcc_data/credential << EOF
-          _default:
-            twcc_api_key: ${{ secrets.TWCC_API_KEY }}
-            twcc_proj_code: ${{ secrets.TWCC_PROJECT_CODE }}
+          python3 - << PYEOF
+          import os
+          cred = f"""_default:
+            twcc_api_key: {os.environ['TWCC_API_KEY']}
+            twcc_proj_code: {os.environ['TWCC_PROJECT_CODE']}
             twcc_username: tcpsr001
-          EOF
+          """
+          open(os.path.expanduser("~/.twcc_data/credential"), "w").write(cred)
+          print("認證設定完成")
+          PYEOF
 
       - name: 啟動 TWCC CCS 容器執行完整流程
         env:
@@ -32,7 +45,7 @@ jobs:
           export PYTHONIOENCODING=UTF-8
 
           echo "建立 TWCC CCS 容器..."
-          CID=$(twccli mk ccs \
+          RAW_JSON=$(twccli mk ccs \
             -n "arxiv$(date +%m%d%H)" \
             -itype "PyTorch" \
             -gpu 1 \
@@ -42,8 +55,12 @@ jobs:
             -envk RECEIVER        -envv "$RECEIVER" \
             -envk SENDER_PASSWORD -envv "$SENDER_PASSWORD" \
             -cmd "bash /work/tcpsr001/scripts/arxiv_tldr.sh" \
-            -wait -json | python3 -c \
-            "import sys,json; d=json.load(sys.stdin); print(d['id'])")
+            -wait -json 2>&1)
+
+          echo "twccli 輸出: $RAW_JSON"
+
+          CID=$(echo "$RAW_JSON" | python3 -c \
+            "import sys,json; lines=sys.stdin.read(); d=json.loads(lines); print(d['id'])")
 
           echo "容器 ID: $CID"
 
