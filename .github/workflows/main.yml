@@ -44,7 +44,14 @@ jobs:
           export LC_ALL=C.UTF-8
           export PYTHONIOENCODING=UTF-8
 
+          # 確認認證檔
+          echo "=== credential 檢查 ==="
+          cat ~/.twcc_data/credential | sed 's/\(api_key: \).*/\1***/'
+          echo "=== twccli 版本 ==="
+          twccli --version 2>&1 || true
+
           echo "建立 TWCC CCS 容器..."
+          set +e
           RAW_JSON=$(twccli mk ccs \
             -n "arxiv$(date +%m%d%H)" \
             -itype "PyTorch" \
@@ -56,8 +63,12 @@ jobs:
             -envk SENDER_PASSWORD -envv "$SENDER_PASSWORD" \
             -cmd "bash /work/tcpsr001/scripts/arxiv_tldr.sh" \
             -wait -json 2>&1)
-
+          TWCC_EXIT=$?
+          set -e
+          echo "twccli exit code: $TWCC_EXIT"
           echo "twccli 輸出: $RAW_JSON"
+
+          [ $TWCC_EXIT -ne 0 ] && exit 1
 
           CID=$(echo "$RAW_JSON" | python3 -c \
             "import sys,json; lines=sys.stdin.read(); d=json.loads(lines); print(d['id'])")
