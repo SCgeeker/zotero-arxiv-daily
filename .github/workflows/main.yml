@@ -8,27 +8,59 @@ jobs:
   calculate-and-send:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ vars.REPOSITORY }}
-          ref: ${{ vars.REF }}
+      - name: 安裝 twccli 並設定認證
+        run: |
+          pip install TWCC-CLI
+          mkdir -p ~/.twcc_data
+          cat > ~/.twcc_data/credential << EOF
+          _default:
+            twcc_api_key: ${{ secrets.TWCC_API_KEY }}
+            twcc_proj_code: ${{ secrets.TWCC_PROJECT_CODE }}
+            twcc_username: tcpsr001
+          EOF
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v7
-
-      - name: Run script
+      - name: 啟動 TWCC CCS 容器執行完整流程
         env:
           ZOTERO_ID: ${{ secrets.ZOTERO_ID }}
           ZOTERO_KEY: ${{ secrets.ZOTERO_KEY }}
           SENDER: ${{ secrets.SENDER }}
           RECEIVER: ${{ secrets.RECEIVER }}
           SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
-          CUSTOM_CONFIG: ${{ vars.CUSTOM_CONFIG }}
         run: |
-          printf "%b\n" "$CUSTOM_CONFIG" > config/custom.yaml
-          echo "Use custom config: "
-          cat config/custom.yaml
-          uv run src/zotero_arxiv_daily/main.py
+          export LANG=C.UTF-8
+          export LC_ALL=C.UTF-8
+          export PYTHONIOENCODING=UTF-8
+
+          echo "建立 TWCC CCS 容器..."
+          CID=$(twccli mk ccs \
+            -n "arxiv$(date +%m%d%H)" \
+            -itype "PyTorch" \
+            -gpu 1 \
+            -envk ZOTERO_ID       -envv "$ZOTERO_ID" \
+            -envk ZOTERO_KEY      -envv "$ZOTERO_KEY" \
+            -envk SENDER          -envv "$SENDER" \
+            -envk RECEIVER        -envv "$RECEIVER" \
+            -envk SENDER_PASSWORD -envv "$SENDER_PASSWORD" \
+            -cmd "bash /work/tcpsr001/scripts/arxiv_tldr.sh" \
+            -wait -json | python3 -c \
+            "import sys,json; d=json.load(sys.stdin); print(d['id'])")
+
+          echo "容器 ID: $CID"
+
+          # 等待腳本執行完成（最多 30 分鐘）
+          for i in $(seq 1 30); do
+            STATUS=$(twccli ls ccs -s $CID -json 2>/dev/null | \
+              python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))" 2>/dev/null || echo "unknown")
+            echo "[$i/30] 狀態: $STATUS"
+            if [ "$STATUS" = "Ready" ] || [ "$STATUS" = "Stopped" ]; then
+              break
+            fi
+            sleep 60
+          done
+
+          # 取得 log
+          twccli ls ccs -s $CID -log 2>/dev/null || true
+
+          # 刪除容器（節省額度）
+          twccli rm ccs -s $CID -f
+          echo "容器已刪除"
