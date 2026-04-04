@@ -19,14 +19,32 @@ jobs:
           TWCCLI_FILE=$(python3 -c "import twccli, os; print(os.path.join(os.path.dirname(twccli.__file__), 'twccli.py'))")
           sed -i 's/os\.mkdir(_TWCC_DATA_DIR_)/os.makedirs(_TWCC_DATA_DIR_, exist_ok=True)/g' "$TWCCLI_FILE"
 
-          # 建立認證檔
+          # 建立認證檔（需包含 _meta 與 projects 區段，否則 isOldCredential() 會 KeyError）
           mkdir -p ~/.twcc_data
           python3 - << PYEOF
-          import os
+          import os, datetime
+          api_key = os.environ['TWCC_API_KEY']
+          proj_code = os.environ['TWCC_PROJECT_CODE']
+          cntr_id = os.environ.get('TWCC_CNTR_ID', '130365')
+          cos_id  = os.environ.get('TWCC_COS_ID',  '130371')
+          hpcj_id = os.environ.get('TWCC_HPCJ_ID', '130368')
+          vcs_id  = os.environ.get('TWCC_VCS_ID',  '130362')
+          now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
           cred = f"""_default:
-            twcc_api_key: {os.environ['TWCC_API_KEY']}
-            twcc_proj_code: {os.environ['TWCC_PROJECT_CODE']}
+            twcc_api_key: {api_key}
+            twcc_proj_code: {proj_code}
             twcc_username: tcpsr001
+          _meta:
+            cli_version: 0.6.1
+            ctime: '{now}'
+            ga_country: TW
+            user_agent: TWCC-CLI
+          projects:
+            {proj_code}:
+              CNTR: {cntr_id}
+              COS: {cos_id}
+              HPCJ: {hpcj_id}
+              VCS: {vcs_id}
           """
           open(os.path.expanduser("~/.twcc_data/credential"), "w").write(cred)
           print("認證設定完成")
