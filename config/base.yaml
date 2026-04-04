@@ -12,6 +12,15 @@ source:
     category: null # The categories of target biorxiv papers. Find categories from [here](https://www.biorxiv.org/). Example: ["biochemistry","animal behavior and cognition"]
   medrxiv:
     category: null # The categories of target medrxiv papers. Find categories from [here](https://www.medrxiv.org/) Example: ["psychiatry and clinical psychology", "neurology"]
+  osf:
+    provider: null # OSF provider IDs. Example: ["psyarxiv","socarxiv"]. See https://osf.io/preprints/
+  pubmed:
+    query: null # PubMed search query (MeSH terms, keywords). Example: "cognitive neuroscience[MeSH] OR psycholinguistics"
+    api_key: null # NCBI API key (optional). Register at https://www.ncbi.nlm.nih.gov/account/
+    reldate: 2 # Retrieve papers added to PubMed within the last N days.
+  europepmc:
+    query: null # Europe PMC search query. Example: "cognitive neuroscience"
+    reldate: 2 # Retrieve papers published within the last N days.
 
 email:
   sender: ??? # The email account of the SMTP server that sends you email. Example: abc@qq.com
