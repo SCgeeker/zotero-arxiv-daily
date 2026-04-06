@@ -1,8 +1,8 @@
 zotero:
   user_id: ${oc.env:ZOTERO_ID}
   api_key: ${oc.env:ZOTERO_KEY}
-  include_path: null # Or set a list of glob patterns, e.g. ["2026/survey/**","2026/reading-group/**"]
-  ignore_path: ["+/**"]
+  include_path: ["Programs_Reference/**"] # Or set a list of glob patterns, e.g. ["2026/survey/**","2026/reading-group/**"]
+  ignore_path: ["+/**","Programs_Reference/Undergraduate_projects/**", "Open_Reproducibility/**", "better research practice/**"]
 
 email:
   sender: ${oc.env:SENDER}
@@ -20,8 +20,16 @@ llm:
 
 source:
   arxiv:
-    category: ["cs.AI","cs.CV","cs.LG","cs.CL"]
+    category: ["cs.CL", "q-bio.NC", "cs.AI"]
+  osf:
+    provider: ["psyarxiv", "socarxiv"]
+  pubmed:
+    query: "psycholinguistics[MeSH] OR cognitive neuroscience[MeSH]"
+    reldate: 2
+  europepmc:
+    query: "embodied cognition OR mental simulation OR psycholinguistics"
+    reldate: 2
 
 executor:
   debug: ${oc.env:DEBUG,null}
-  source: ['arxiv']
+  source: ['arxiv', 'osf', 'pubmed', 'europepmc']
