@@ -58,7 +58,7 @@ fi
 # 固定 Python 3.12 以符合容器系統 torch（避免 3.13 與 3.12 torch 符號衝突）
 echo "[uv] 同步依賴..."
 rm -rf .venv 2>/dev/null || true
-uv sync --python python3.12
+uv sync
 
 # 設定 Ollama 作為 OpenAI-compatible endpoint
 # custom.yaml 直接使用 repo 的設定（含 include_path、ignore_path、新來源）
