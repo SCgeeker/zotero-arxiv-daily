@@ -23,6 +23,9 @@ fi
 
 # 安裝 Ollama（若未存在）
 if ! command -v ollama &> /dev/null; then
+    echo "[ollama] 安裝 zstd 依賴..."
+    apt-get update -qq
+    apt-get install -y zstd
     echo "[ollama] 安裝中..."
     curl -fsSL https://ollama.com/install.sh | sh
 fi
@@ -51,41 +54,14 @@ else
     cd "$REPO_DIR"
 fi
 
-# 安裝 Python 依賴
+# 安裝 Python 依賴（先清除殘留 .venv 避免 uv sync 刪除失敗）
+# 固定 Python 3.12 以符合容器系統 torch（避免 3.13 與 3.12 torch 符號衝突）
 echo "[uv] 同步依賴..."
-uv sync
-
-# 寫入 custom.yaml（使用容器環境變數中的 secrets）
-cat > config/custom.yaml << YAML
-zotero:
-  user_id: \${oc.env:ZOTERO_ID}
-  api_key: \${oc.env:ZOTERO_KEY}
-  include_path: null
-
-email:
-  sender: \${oc.env:SENDER}
-  receiver: \${oc.env:RECEIVER}
-  smtp_server: smtp.gmail.com
-  smtp_port: 587
-  sender_password: \${oc.env:SENDER_PASSWORD}
-
-llm:
-  api:
-    key: \${oc.env:OPENAI_API_KEY}
-    base_url: \${oc.env:OPENAI_API_BASE}
-  generation_kwargs:
-    model: crystalmind
-  language: Chinese
-
-source:
-  arxiv:
-    category: ["cs.CL","q-bio.NC","cs.AI"]
-
-executor:
-  source: ['arxiv']
-YAML
+rm -rf .venv 2>/dev/null || true
+uv sync --python python3.12
 
 # 設定 Ollama 作為 OpenAI-compatible endpoint
+# custom.yaml 直接使用 repo 的設定（含 include_path、ignore_path、新來源）
 export OPENAI_API_BASE=http://localhost:11434/v1
 export OPENAI_API_KEY=ollama
 
