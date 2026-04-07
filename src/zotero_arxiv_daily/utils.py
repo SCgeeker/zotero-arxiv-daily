@@ -146,8 +146,8 @@ def send_email(config: DictConfig, html: str):
 def _send_email_resend(config: DictConfig, html: str, api_key: str):
     """透過 Resend HTTP API 寄信（不需要 SMTP port，適用於 TWCC 容器）"""
     receiver = config.email.receiver
-    # Resend 的 from 必須是已驗證網域；若未設定自訂寄件者，改用 Resend 測試地址
-    sender = config.email.get('resend_sender', 'Daily arXiv <onboarding@resend.dev>')
+    # Resend 的 from 必須是已驗證網域；若未設定（或設為 null），改用 Resend 測試地址
+    sender = config.email.get('resend_sender') or 'Daily arXiv <onboarding@resend.dev>'
     today = datetime.datetime.now().strftime('%Y/%m/%d')
 
     response = httpx.post(
