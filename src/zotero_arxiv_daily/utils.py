@@ -8,6 +8,7 @@ from email.mime.text import MIMEText
 from email.utils import parseaddr, formataddr
 from loguru import logger
 import datetime
+import httpx
 from omegaconf import DictConfig
 import pymupdf
 import pymupdf.layout
@@ -134,12 +135,45 @@ def glob_match(path:str, pattern:str) -> bool:
             i += 1
     return re.fullmatch(''.join(parts), path) is not None
 
-def send_email(config:DictConfig, html:str):
+def send_email(config: DictConfig, html: str):
+    resend_api_key = config.email.get('resend_api_key', None)
+    if resend_api_key:
+        _send_email_resend(config, html, resend_api_key)
+    else:
+        _send_email_smtp(config, html)
+
+
+def _send_email_resend(config: DictConfig, html: str, api_key: str):
+    """透過 Resend HTTP API 寄信（不需要 SMTP port，適用於 TWCC 容器）"""
+    receiver = config.email.receiver
+    # Resend 的 from 必須是已驗證網域；若未設定自訂寄件者，改用 Resend 測試地址
+    sender = config.email.get('resend_sender', 'Daily arXiv <onboarding@resend.dev>')
+    today = datetime.datetime.now().strftime('%Y/%m/%d')
+
+    response = httpx.post(
+        'https://api.resend.com/emails',
+        headers={'Authorization': f'Bearer {api_key}'},
+        json={
+            'from': sender,
+            'to': [receiver],
+            'subject': f'Daily arXiv {today}',
+            'html': html,
+        },
+        timeout=30.0,
+    )
+    if response.status_code not in (200, 201):
+        raise RuntimeError(f"Resend API 錯誤 {response.status_code}: {response.text}")
+    logger.info(f"Email sent via Resend: id={response.json().get('id')}")
+
+
+def _send_email_smtp(config: DictConfig, html: str):
+    """透過 SMTP 寄信（本機或 GitHub Actions runner 使用，TWCC 容器內會失敗）"""
     sender = config.email.sender
     receiver = config.email.receiver
     password = config.email.sender_password
     smtp_server = config.email.smtp_server
     smtp_port = config.email.smtp_port
+
     def _format_addr(s):
         name, addr = parseaddr(s)
         return formataddr((Header(name, 'utf-8').encode(), addr))

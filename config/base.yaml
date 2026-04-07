@@ -28,6 +28,10 @@ email:
   smtp_server: ??? # The SMTP server that sends the email. Ask your email provider (Gmail, QQ, Outlook, ...) for its SMTP server. Example: smtp.qq.com
   smtp_port: ??? # The port of SMTP server. Example: 465
   sender_password: ??? # The password of the sender account. Note that it's not necessarily the password for logging in the e-mail client, but the authentication code for SMTP service. Ask your email provider for this. Example: abcdefghijklmn
+  # Optional: Resend HTTP API (recommended for cloud containers where SMTP ports are blocked).
+  # Sign up at https://resend.com → API Keys → Create API Key. Free tier: 100 emails/day.
+  resend_api_key: null # Example: re_xxxxxxxxxxxx
+  resend_sender: null  # Verified sender address. If null, falls back to "Daily arXiv <onboarding@resend.dev>"
 
 llm:
   api:

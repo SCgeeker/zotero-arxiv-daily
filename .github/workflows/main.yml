@@ -59,6 +59,7 @@ jobs:
           SENDER: ${{ secrets.SENDER }}
           RECEIVER: ${{ secrets.RECEIVER }}
           SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
           export LANG=C.UTF-8
           export LC_ALL=C.UTF-8
@@ -81,6 +82,7 @@ jobs:
             -envk SENDER          -envv "$SENDER" \
             -envk RECEIVER        -envv "$RECEIVER" \
             -envk SENDER_PASSWORD -envv "$SENDER_PASSWORD" \
+            -envk RESEND_API_KEY  -envv "$RESEND_API_KEY" \
             -cmd "bash /work/tcpsr001/scripts/arxiv_tldr.sh" \
             -wait -json 2>&1)
           TWCC_EXIT=$?

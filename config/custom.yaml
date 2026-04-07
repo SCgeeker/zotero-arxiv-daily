@@ -10,6 +10,7 @@ email:
   smtp_server: smtp.gmail.com
   smtp_port: 587
   sender_password: ${oc.env:SENDER_PASSWORD}
+  resend_api_key: ${oc.env:RESEND_API_KEY,}
 
 llm:
   api:
