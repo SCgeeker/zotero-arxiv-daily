@@ -38,7 +38,11 @@ class Executor:
             source: get_retriever_cls(source)(config) for source in config.executor.source
         }
         self.reranker = get_reranker_cls(config.executor.reranker)(config)
-        self.openai_client = OpenAI(api_key=config.llm.api.key, base_url=config.llm.api.base_url)
+        self.openai_client = OpenAI(
+            api_key=config.llm.api.key,
+            base_url=config.llm.api.base_url,
+            timeout=float(config.llm.get('timeout', 120)),
+        )
     def fetch_zotero_corpus(self) -> list[CorpusPaper]:
         logger.info("Fetching zotero corpus")
         zot = zotero.Zotero(self.config.zotero.user_id, 'user', self.config.zotero.api_key)
