@@ -18,7 +18,7 @@ dependencies = [
     "pyzotero>=1.10.0",
     "scikit-learn>=1.7.1",
     "sentence-transformers>=5.2.3",
-    "torch",
+    "torch==2.5.1",
     "openai>=2.24.0",
     "arxiv>=2.4.0",
     "pymupdf4llm>=0.3.4",
