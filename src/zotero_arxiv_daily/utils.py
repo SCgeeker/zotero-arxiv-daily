@@ -1,6 +1,7 @@
 import tarfile
 import re
 import glob
+import pathlib
 import smtplib
 from email.header import Header
 from email.mime.text import MIMEText
@@ -89,8 +90,8 @@ def extract_markdown_from_pdf(file_path:str) -> str:
     return pymupdf4llm.to_markdown(file_path,use_ocr=False,header=False,footer=False,ignore_code=True)
 
 def glob_match(path:str, pattern:str) -> bool:
-    re_pattern = glob.translate(pattern,recursive=True)
-    return re.match(re_pattern, path) is not None
+    # glob.translate() 僅 Python 3.13+ 支援，改用 pathlib（3.12 已支援 **）
+    return pathlib.PurePosixPath(path).match(pattern)
 
 def send_email(config:DictConfig, html:str):
     sender = config.email.sender
