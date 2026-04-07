@@ -91,21 +91,48 @@ def extract_markdown_from_pdf(file_path:str) -> str:
 
 def glob_match(path:str, pattern:str) -> bool:
     # glob.translate() 僅 Python 3.13+ 支援
-    # 手動將 glob pattern 轉為 regex（相容 Python 3.12）
+    # 逐字元將 glob pattern 轉為 regex（相容 Python 3.12）
     if not pattern:
         return path == ""
-    regex = re.escape(pattern)
-    # **/ 可匹配零個或多個目錄前綴（含空）
-    regex = regex.replace(r'\*\*/', '(?:.+/)?')
-    # 剩餘 ** 匹配任意字元（含 /）
-    regex = regex.replace(r'\*\*', '.*')
-    # * 匹配不含 / 的任意字元
-    regex = regex.replace(r'\*', '[^/]*')
-    # ? 匹配不含 / 的單一字元
-    regex = regex.replace(r'\?', '[^/]')
-    # 還原 character class 的 [ ]
-    regex = regex.replace(r'\[', '[').replace(r'\]', ']')
-    return re.fullmatch(regex, path) is not None
+    i, n = 0, len(pattern)
+    parts = []
+    while i < n:
+        c = pattern[i]
+        if c == '*':
+            if i + 1 < n and pattern[i + 1] == '*':
+                # **/ → 零個或多個目錄前綴；** → 任意字元
+                if i + 2 < n and pattern[i + 2] == '/':
+                    parts.append('(?:.+/)?')
+                    i += 3
+                else:
+                    parts.append('.*')
+                    i += 2
+            else:
+                parts.append('[^/]*')
+                i += 1
+        elif c == '?':
+            parts.append('[^/]')
+            i += 1
+        elif c == '[':
+            # 找到對應的 ] 並直接保留 character class
+            j = i + 1
+            if j < n and pattern[j] == '!':
+                j += 1
+            if j < n and pattern[j] == ']':
+                j += 1
+            while j < n and pattern[j] != ']':
+                j += 1
+            if j < n:
+                cls = pattern[i:j + 1].replace('!', '^', 1) if pattern[i + 1] == '!' else pattern[i:j + 1]
+                parts.append(cls)
+                i = j + 1
+            else:
+                parts.append(re.escape(c))
+                i += 1
+        else:
+            parts.append(re.escape(c))
+            i += 1
+    return re.fullmatch(''.join(parts), path) is not None
 
 def send_email(config:DictConfig, html:str):
     sender = config.email.sender
