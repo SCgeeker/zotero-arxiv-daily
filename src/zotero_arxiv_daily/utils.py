@@ -90,8 +90,22 @@ def extract_markdown_from_pdf(file_path:str) -> str:
     return pymupdf4llm.to_markdown(file_path,use_ocr=False,header=False,footer=False,ignore_code=True)
 
 def glob_match(path:str, pattern:str) -> bool:
-    # glob.translate() 僅 Python 3.13+ 支援，改用 pathlib（3.12 已支援 **）
-    return pathlib.PurePosixPath(path).match(pattern)
+    # glob.translate() 僅 Python 3.13+ 支援
+    # 手動將 glob pattern 轉為 regex（相容 Python 3.12）
+    if not pattern:
+        return path == ""
+    regex = re.escape(pattern)
+    # **/ 可匹配零個或多個目錄前綴（含空）
+    regex = regex.replace(r'\*\*/', '(?:.+/)?')
+    # 剩餘 ** 匹配任意字元（含 /）
+    regex = regex.replace(r'\*\*', '.*')
+    # * 匹配不含 / 的任意字元
+    regex = regex.replace(r'\*', '[^/]*')
+    # ? 匹配不含 / 的單一字元
+    regex = regex.replace(r'\?', '[^/]')
+    # 還原 character class 的 [ ]
+    regex = regex.replace(r'\[', '[').replace(r'\]', ']')
+    return re.fullmatch(regex, path) is not None
 
 def send_email(config:DictConfig, html:str):
     sender = config.email.sender
