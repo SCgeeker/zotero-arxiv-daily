@@ -47,7 +47,13 @@ REPO_DIR="/work/tcpsr001/auto-bibxiv"
 if [ -d "$REPO_DIR/.git" ]; then
     echo "[git] 更新 repo..."
     cd "$REPO_DIR"
-    git pull --ff-only 2>/dev/null || true
+    git fetch origin 2>&1 && git reset --hard origin/main 2>&1 || {
+        echo "[git] fetch/reset 失敗，嘗試重新 clone..."
+        cd /work/tcpsr001
+        rm -rf "$REPO_DIR"
+        git clone https://github.com/SCgeeker/zotero-arxiv-daily.git "$REPO_DIR"
+        cd "$REPO_DIR"
+    }
 else
     echo "[git] Clone repo..."
     git clone https://github.com/SCgeeker/zotero-arxiv-daily.git "$REPO_DIR"
