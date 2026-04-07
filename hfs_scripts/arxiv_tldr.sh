@@ -78,7 +78,8 @@ export OPENAI_API_BASE=http://localhost:11434/v1
 export OPENAI_API_KEY=ollama
 
 echo "[main] 執行主程式..."
-uv run src/zotero_arxiv_daily/main.py
+# 直接用 venv python 執行，避免 uv run 自動 sync 覆寫剛安裝的 CUDA torch
+.venv/bin/python src/zotero_arxiv_daily/main.py
 
 echo "=== 完成 $(date) ==="
 
