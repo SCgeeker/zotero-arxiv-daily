@@ -62,8 +62,10 @@ fi
 
 # 安裝 Python 依賴（先清除殘留 .venv 避免 uv sync 刪除失敗）
 # 固定 Python 3.12 以符合容器系統 torch（避免 3.13 與 3.12 torch 符號衝突）
+# 刪除 uv.lock 讓 uv 重新解析適合 cp312 的 torch wheel 版本
 echo "[uv] 同步依賴..."
 rm -rf .venv 2>/dev/null || true
+rm -f uv.lock
 uv sync --python python3.12
 
 # 設定 Ollama 作為 OpenAI-compatible endpoint
