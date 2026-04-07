@@ -67,6 +67,10 @@ echo "[uv] 同步依賴..."
 rm -rf .venv 2>/dev/null || true
 rm -f uv.lock
 uv sync --python python3.12
+# TWCC 容器有 V100 GPU，覆蓋 CPU torch 為 CUDA 12.1 版
+# CPU-only torch 2.11 缺少 linalg__powsum，CUDA 2.5.1 正常
+echo "[torch] 覆蓋安裝 CUDA 12.1 torch (v2.5.1)..."
+uv pip install torch==2.5.1+cu121 --index-url https://download.pytorch.org/whl/cu121 --force-reinstall
 
 # 設定 Ollama 作為 OpenAI-compatible endpoint
 # custom.yaml 直接使用 repo 的設定（含 include_path、ignore_path、新來源）
