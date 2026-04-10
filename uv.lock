@@ -2358,7 +2358,7 @@ requires-dist = [
     { name = "pymupdf4llm", specifier = ">=0.3.4" },
     { name = "pyzotero", specifier = ">=1.10.0" },
     { name = "scikit-learn", specifier = ">=1.7.1" },
-    { name = "sentence-transformers", specifier = ">=5.2.3" },
+    { name = "sentence-transformers", specifier = ">=5.2.3,<5.4.0" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "torch", specifier = "==2.5.1", index = "https://download.pytorch.org/whl/cpu" },
     { name = "trafilatura", specifier = ">=2.0.0" },

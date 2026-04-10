@@ -62,11 +62,11 @@ fi
 
 # 安裝 Python 依賴（先清除殘留 .venv 避免 uv sync 刪除失敗）
 # 固定 Python 3.12 以符合容器系統 torch（避免 3.13 與 3.12 torch 符號衝突）
-# 刪除 uv.lock 讓 uv 重新解析適合 cp312 的 torch wheel 版本
+# 保留 uv.lock（git reset --hard 已還原），用 --frozen 確保版本與 lock 一致
+# torch 之後另行用 --force-reinstall 換成 CUDA 版，不影響其他套件版本
 echo "[uv] 同步依賴..."
 rm -rf .venv 2>/dev/null || true
-rm -f uv.lock
-uv sync --python python3.12
+uv sync --python python3.12 --frozen
 # TWCC 容器有 V100 GPU，覆蓋 CPU torch 為 CUDA 12.1 版
 # CPU-only torch 2.11 缺少 linalg__powsum，CUDA 2.5.1 正常
 echo "[torch] 覆蓋安裝 CUDA 12.1 torch (v2.5.1)..."
