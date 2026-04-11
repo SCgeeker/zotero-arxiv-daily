@@ -101,14 +101,24 @@ class Executor:
             logger.error(f"No zotero papers found. Please check your zotero settings:\n{self.config.zotero}")
             return
         all_papers = []
+        failed_sources = []
         for source, retriever in self.retrievers.items():
             logger.info(f"Retrieving {source} papers...")
-            papers = retriever.retrieve_papers()
+            try:
+                papers = retriever.retrieve_papers()
+            except Exception as e:
+                # 單一來源失敗(如 arxiv HTTP 429)不應拖垮整個 pipeline；
+                # 記錄錯誤後繼續跑其他來源。
+                logger.error(f"Failed to retrieve {source} papers: {type(e).__name__}: {e}")
+                failed_sources.append(source)
+                continue
             if len(papers) == 0:
                 logger.info(f"No {source} papers found")
                 continue
             logger.info(f"Retrieved {len(papers)} {source} papers")
             all_papers.extend(papers)
+        if failed_sources:
+            logger.warning(f"Sources failed: {failed_sources}. Proceeding with remaining results.")
         logger.info(f"Total {len(all_papers)} papers retrieved from all sources")
         reranked_papers = []
         if len(all_papers) > 0:
