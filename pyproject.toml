@@ -18,6 +18,9 @@ dependencies = [
     "pyzotero>=1.10.0",
     "scikit-learn>=1.7.1",
     "sentence-transformers>=5.2.3,<5.4.0",
+    # transformers 5.5.3 在 AutoTokenizer.from_pretrained() 自動注入 trust_remote_code，
+    # 與 jinaai/jina-embeddings-v5 模型的 custom_st.py 衝突 → 鎖定 5.5.0（04-07 已驗證可用）
+    "transformers==5.5.0",
     "torch==2.5.1",
     "openai>=2.24.0",
     "arxiv>=2.4.0",
