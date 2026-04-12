@@ -126,7 +126,7 @@ def render_email(papers:list[Paper]) -> str:
                 affiliations += ', ...'
         else:
             affiliations = 'Unknown Affiliation'
-        parts.append(get_block_html(p.title, authors, rate, p.tldr, p.pdf_url, affiliations, p.source))
+        parts.append(get_block_html(p.title, authors, rate, p.tldr, p.pdf_url or p.url, affiliations, p.source))
 
     content = '<br>' + '</br><br>'.join(parts) + '</br>'
     return framework.replace('__CONTENT__', content)
