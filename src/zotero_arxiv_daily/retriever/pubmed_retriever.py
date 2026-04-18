@@ -93,9 +93,15 @@ class PubmedRetriever(BaseRetriever):
                 # PMID 與 DOI
                 pmid = medline.findtext("PMID", "")
                 doi = ""
-                for id_node in article.findall(".//ArticleId"):
+                # 只抓文章本身的 DOI，避免誤抓 ReferenceList 內引用文獻的 DOI
+                for id_node in article.findall("./PubmedData/ArticleIdList/ArticleId"):
                     if id_node.get("IdType") == "doi":
                         doi = id_node.text or ""
+                        break
+                if not doi:
+                    elocation = art.find("./ELocationID[@EIdType='doi']")
+                    if elocation is not None:
+                        doi = (elocation.text or "").strip()
                 papers.append({
                     "title": title,
                     "abstract": abstract,
