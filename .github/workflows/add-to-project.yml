@@ -1,0 +1,16 @@
+name: Add to Project
+
+on:
+  issues:
+    types: [opened, reopened]
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@v1
+        with:
+          project-url: https://github.com/users/SCgeeker/projects/1
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
