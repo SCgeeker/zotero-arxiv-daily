@@ -97,11 +97,23 @@ jobs:
 
           echo "容器 ID: $CID"
 
-          # 等待腳本執行完成（最多 30 分鐘）
-          for i in $(seq 1 30); do
-            STATUS=$(twccli ls ccs -s $CID -json 2>/dev/null | \
-              python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))" 2>/dev/null || echo "unknown")
-            echo "[$i/30] 狀態: $STATUS"
+          # 等待腳本執行完成（最多 60 分鐘）
+          for i in $(seq 1 60); do
+            RAW_STATUS=$(twccli ls ccs -s $CID -json 2>/dev/null || echo "[]")
+            STATUS=$(echo "$RAW_STATUS" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    if isinstance(data, list):
+        print(data[0].get('status', 'unknown') if data else 'unknown')
+    elif isinstance(data, dict):
+        print(data.get('status', 'unknown'))
+    else:
+        print('unknown')
+except Exception as e:
+    print('unknown')
+" 2>/dev/null || echo "unknown")
+            echo "[$i/60] 狀態: $STATUS (raw_len=${#RAW_STATUS})"
             if [ "$STATUS" = "Ready" ] || [ "$STATUS" = "Stopped" ]; then
               break
             fi
