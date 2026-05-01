@@ -17,7 +17,7 @@ llm:
     key: ${oc.env:OPENAI_API_KEY}
     base_url: ${oc.env:OPENAI_API_BASE}
   generation_kwargs:
-    model: crystalmind
+    model: ${oc.env:LLM_MODEL,crystalmind}
     max_tokens: 512
   timeout: 300
   language: Chinese

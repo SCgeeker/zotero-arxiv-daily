@@ -1,6 +1,11 @@
 name: Send emails daily
 on:
   workflow_dispatch:
+    inputs:
+      provider:
+        description: 'LLM provider: twcc or google (overrides LLM_PROVIDER variable)'
+        required: false
+        default: ''
   schedule:
     - cron: '0 22 * * *'
 
@@ -8,7 +13,22 @@ jobs:
   calculate-and-send:
     runs-on: ubuntu-latest
     steps:
+      - name: 決定 LLM provider
+        id: provider
+        run: |
+          PROVIDER="${{ github.event.inputs.provider }}"
+          if [ -z "$PROVIDER" ]; then
+            PROVIDER="${{ vars.LLM_PROVIDER }}"
+          fi
+          if [ -z "$PROVIDER" ]; then
+            PROVIDER="twcc"
+          fi
+          echo "provider=$PROVIDER" >> $GITHUB_OUTPUT
+          echo "使用 provider: $PROVIDER"
+
+      # ── TWCC path ──────────────────────────────────────────────
       - name: 安裝 twccli 並設定認證
+        if: steps.provider.outputs.provider == 'twcc'
         env:
           TWCC_API_KEY: ${{ secrets.TWCC_API_KEY }}
           TWCC_PROJECT_CODE: ${{ secrets.TWCC_PROJECT_CODE }}
@@ -53,6 +73,7 @@ jobs:
           PYEOF
 
       - name: 啟動 TWCC CCS 容器執行完整流程
+        if: steps.provider.outputs.provider == 'twcc'
         env:
           ZOTERO_ID: ${{ secrets.ZOTERO_ID }}
           ZOTERO_KEY: ${{ secrets.ZOTERO_KEY }}
@@ -114,3 +135,26 @@ jobs:
           # 刪除容器（節省額度）
           twccli rm ccs -s $CID -f
           echo "容器已刪除"
+
+      # ── Google Gemini path ─────────────────────────────────────
+      - name: Checkout repo
+        if: steps.provider.outputs.provider == 'google'
+        uses: actions/checkout@v4
+
+      - name: 使用 Google Gemini 執行流程
+        if: steps.provider.outputs.provider == 'google'
+        env:
+          ZOTERO_ID: ${{ secrets.ZOTERO_ID }}
+          ZOTERO_KEY: ${{ secrets.ZOTERO_KEY }}
+          SENDER: ${{ secrets.SENDER }}
+          RECEIVER: ${{ secrets.RECEIVER }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          pip install uv
+          uv sync --frozen
+          export OPENAI_API_BASE=https://generativelanguage.googleapis.com/v1beta/openai/
+          export OPENAI_API_KEY=$GOOGLE_API_KEY
+          export LLM_MODEL=gemini-2.0-flash
+          uv run python src/zotero_arxiv_daily/main.py
