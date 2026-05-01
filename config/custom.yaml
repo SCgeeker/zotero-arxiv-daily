@@ -37,4 +37,4 @@ source:
 executor:
   debug: ${oc.env:DEBUG,null}
   source: ['arxiv', 'osf', 'pubmed', 'europepmc']
-  max_paper_num: 25
+  max_paper_num: 10
