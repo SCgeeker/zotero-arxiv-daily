@@ -38,4 +38,4 @@ executor:
   debug: ${oc.env:DEBUG,null}
   source: ['arxiv', 'osf', 'pubmed', 'europepmc']
   max_paper_num: 10
-  min_relevance: 0.5
+  min_relevance: 4.0
