@@ -125,6 +125,14 @@ class Executor:
             logger.info("Reranking papers...")
             reranked_papers = self.reranker.rerank(all_papers, corpus)
             reranked_papers = reranked_papers[:self.config.executor.max_paper_num]
+            min_relevance = self.config.executor.get('min_relevance', 0.0)
+            if reranked_papers:
+                scores = [p.score for p in reranked_papers if p.score is not None]
+                logger.info(f"Score range: min={min(scores):.3f}, max={max(scores):.3f}, mean={sum(scores)/len(scores):.3f}")
+            if min_relevance > 0:
+                before = len(reranked_papers)
+                reranked_papers = [p for p in reranked_papers if p.score is not None and p.score >= min_relevance]
+                logger.info(f"Relevance filter (>={min_relevance}): {before} → {len(reranked_papers)} papers")
             logger.info("Generating TLDR and affiliations...")
             for p in tqdm(reranked_papers):
                 p.generate_tldr(self.openai_client, self.config.llm)
