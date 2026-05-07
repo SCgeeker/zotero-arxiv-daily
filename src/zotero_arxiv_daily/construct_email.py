@@ -86,7 +86,8 @@ def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affi
     </tr>
 </table>
 """
-    return block_template.format(title=title, authors=authors, rate=rate, tldr=tldr, pdf_url=pdf_url, affiliations=affiliations, source=source or '')
+    btn_label = "PDF" if (source or "").lower() in ("arxiv", "biorxiv", "medrxiv") else "Link"
+    return block_template.format(title=title, authors=authors, rate=rate, tldr=tldr, pdf_url=pdf_url, affiliations=affiliations, source=source or '', btn_label=btn_label)
 
 def get_stars(score:float):
     full_star = '<span class="full-star">⭐</span>'
