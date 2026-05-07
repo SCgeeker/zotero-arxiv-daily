@@ -2,7 +2,7 @@ zotero:
   user_id: ${oc.env:ZOTERO_ID}
   api_key: ${oc.env:ZOTERO_KEY}
   include_path: ["Programs_Reference/**"] # Or set a list of glob patterns, e.g. ["2026/survey/**","2026/reading-group/**"]
-  ignore_path: ["+/**","Programs_Reference/Undergraduate_projects/**", "Open_Reproducibility/**", "better research practice/**"]
+  ignore_path: ["+/**","Programs_Reference/Undergraduate_projects/**","Programs_Reference/side_consciousness/**", "Open_Reproducibility/**", "better research practice/**"]
 
 email:
   sender: ${oc.env:SENDER}
