@@ -156,5 +156,5 @@ jobs:
           uv sync --frozen
           export OPENAI_API_BASE=https://generativelanguage.googleapis.com/v1beta/openai/
           export OPENAI_API_KEY=$GOOGLE_API_KEY
-          export LLM_MODEL=gemini-2.0-flash
+          export LLM_MODEL=gemini-2.5-flash
           uv run python src/zotero_arxiv_daily/main.py
