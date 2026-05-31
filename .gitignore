@@ -17,3 +17,9 @@ models
 test-compose.yml
 outputs
 config/private.yaml
+
+# 執行期產出（log、mail、email 備份）
+*.log
+*.eml
+mail_*.txt
+zotero_collections.txt

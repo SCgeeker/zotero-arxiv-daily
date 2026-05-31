@@ -54,11 +54,12 @@ gh run view <run-id> --log-failed
 - [x] 在 `config/custom.yaml` 中設定 arXiv 類別 → 已設定 `["cs.CL","q-bio.NC","cs.AI"]`，`source: ['arxiv']`
 - [x] 調整 cron 排程 → `0 22 * * *`（UTC 22:00 = 台灣 06:00），無需更動
 - [x] 設定 Gmail SMTP → `smtp.gmail.com:587`，App Password 已設定
-- [ ] **設定 Zotero secrets**：`ZOTERO_ID`（數字 ID，非帳號名）和 `ZOTERO_KEY`（API key）尚未設定，導致 404 錯誤
-- [ ] 設定 LLM secrets：`OPENAI_API_KEY` 和 `OPENAI_API_BASE` 尚未設定
+- [x] **設定 Zotero secrets**：`ZOTERO_ID` 和 `ZOTERO_KEY` 已設定
+- [x] 設定 LLM：改用 TWCC CCS 本地 Ollama（crystalmind 模型），不需要 OpenAI secrets
+- [x] 設定 TWCC secrets：`TWCC_API_KEY`、`TWCC_PROJECT_CODE`、`TWCC_S3_ACCESS_KEY`、`TWCC_S3_SECRET_KEY` 已設定
+- [x] 完整測試：workflow run 23968014086 成功（32 分鐘，2026-04-04）
 - [ ] 設定 `ignore_path` 排除不相關的 Zotero 集合（可選）
 - [ ] 選擇 reranker 模式（預設 `local`，可選）
-- [x] 完整測試：觸發 `test.yml` 並確認收到 email
 
 ---
 
