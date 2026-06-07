@@ -39,3 +39,4 @@ executor:
   source: ['arxiv', 'osf', 'pubmed', 'europepmc']
   max_paper_num: 10
   min_relevance: 4.0
+  send_empty: true
