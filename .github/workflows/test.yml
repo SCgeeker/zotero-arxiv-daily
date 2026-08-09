@@ -23,12 +23,20 @@ jobs:
           SENDER: ${{ secrets.SENDER }}
           RECEIVER: ${{ secrets.RECEIVER }}
           SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
-          CUSTOM_CONFIG: ${{ vars.CUSTOM_CONFIG }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
+          export LANG=C.UTF-8
+          export LC_ALL=C.UTF-8
+          export PYTHONIOENCODING=UTF-8
           export DEBUG=true
-          printf "%b\n" "$CUSTOM_CONFIG" > config/custom.yaml
+
+          # 直接使用 repo 內的 config/custom.yaml（與 main.yml 的 google 路徑一致），
+          # 不再用 vars.CUSTOM_CONFIG 覆寫，避免測試跑的設定與正式排程不同。
           echo "Use custom config: "
           cat config/custom.yaml
+
+          export OPENAI_API_BASE=https://generativelanguage.googleapis.com/v1beta/openai/
+          export OPENAI_API_KEY=$GOOGLE_API_KEY
+          export LLM_MODEL=gemini-2.5-flash
           uv run src/zotero_arxiv_daily/main.py
