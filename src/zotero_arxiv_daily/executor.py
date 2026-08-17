@@ -1,16 +1,69 @@
 from loguru import logger
 from pyzotero import zotero
+from pyzotero import errors as zotero_errors
 from omegaconf import DictConfig, ListConfig
 from .utils import glob_match
 from .retriever import get_retriever_cls
 from .protocol import CorpusPaper
 import random
+import re
+import time
 from datetime import datetime
 from .reranker import get_reranker_cls
 from .construct_email import render_email
 from .utils import send_email
 from openai import OpenAI
 from tqdm import tqdm
+
+
+# Zotero API 偶發的暫時性狀態碼。pyzotero 的 ERROR_CODES 未涵蓋任何 5xx，
+# 這些都會落到通用的 errors.HTTPError，且 pyzotero 本身不會重試。
+_TRANSIENT_STATUS = frozenset({500, 502, 503, 504})
+_STATUS_IN_MESSAGE = re.compile(r"Code:\s*(\d{3})")
+
+
+def _extract_status_code(exc: Exception) -> int | None:
+    """從 pyzotero 例外取出 HTTP 狀態碼，取不到則回傳 None。"""
+    # error_handler 是以 `raise ... from exc` 拋出，__cause__ 會是 httpx 例外。
+    response = getattr(getattr(exc, "__cause__", None), "response", None)
+    status = getattr(response, "status_code", None)
+    if isinstance(status, int):
+        return status
+    if match := _STATUS_IN_MESSAGE.search(str(exc)):
+        return int(match.group(1))
+    return None
+
+
+def retry_on_transient_error(
+    fn,
+    *,
+    max_attempts: int = 5,
+    base_delay: float = 2.0,
+    sleep=None,
+    desc: str = "Zotero API",
+):
+    """對 Zotero 暫時性錯誤做指數退避重試。
+
+    只重試 5xx 與連線失敗；4xx（設定錯誤、認證失敗）與非 pyzotero 例外
+    一律立刻拋出，避免把真正的錯誤拖成五倍時間。重試用盡後原樣拋出最後
+    一個例外，讓 workflow 明確失敗而不是靜默回傳空結果。
+    """
+    sleep = sleep or time.sleep
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return fn()
+        except zotero_errors.PyZoteroError as e:
+            retryable = isinstance(e, zotero_errors.CouldNotReachURLError) or (
+                _extract_status_code(e) in _TRANSIENT_STATUS
+            )
+            if not retryable or attempt == max_attempts:
+                raise
+            delay = base_delay * (2 ** (attempt - 1))
+            logger.warning(
+                f"{desc} transient failure ({type(e).__name__}), "
+                f"attempt {attempt}/{max_attempts}, retrying in {delay:.0f}s"
+            )
+            sleep(delay)
 
 
 def normalize_path_patterns(patterns: list[str] | ListConfig | None, config_key: str) -> list[str] | None:
@@ -46,9 +99,16 @@ class Executor:
     def fetch_zotero_corpus(self) -> list[CorpusPaper]:
         logger.info("Fetching zotero corpus")
         zot = zotero.Zotero(self.config.zotero.user_id, 'user', self.config.zotero.api_key)
-        collections = zot.everything(zot.collections())
+        collections = retry_on_transient_error(
+            lambda: zot.everything(zot.collections()), desc="Zotero collections"
+        )
         collections = {c['key']:c for c in collections}
-        corpus = zot.everything(zot.items(itemType='conferencePaper || journalArticle || preprint'))
+        # 文獻庫項目數已超過 4500 筆，everything() 需分頁數十次；
+        # 深層分頁偶爾會撞到 502，整段重試（分頁查詢本身是冪等的）。
+        corpus = retry_on_transient_error(
+            lambda: zot.everything(zot.items(itemType='conferencePaper || journalArticle || preprint')),
+            desc="Zotero items",
+        )
         corpus = [c for c in corpus if c['data']['abstractNote'] != '']
         def get_collection_path(col_key:str) -> str:
             if p := collections[col_key]['data']['parentCollection']:
