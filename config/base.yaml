@@ -2,6 +2,7 @@ zotero:
   user_id: ??? # User ID of your Zotero account.
   api_key: ??? # An Zotero API key with read access.
   include_path: null # A list of glob patterns marking the Zotero collections that should be included. Example: ["2026/survey/**","2026/reading-group/**"]
+  ignore_path: null # A list of glob patterns marking the Zotero collections that should be excluded. Example: ["2026/ignore/**","archive/**"]
 
 source:
   arxiv:
@@ -11,6 +12,15 @@ source:
     category: null # The categories of target biorxiv papers. Find categories from [here](https://www.biorxiv.org/). Example: ["biochemistry","animal behavior and cognition"]
   medrxiv:
     category: null # The categories of target medrxiv papers. Find categories from [here](https://www.medrxiv.org/) Example: ["psychiatry and clinical psychology", "neurology"]
+  osf:
+    provider: null # OSF provider IDs. Example: ["psyarxiv","socarxiv"]. See https://osf.io/preprints/
+  pubmed:
+    query: null # PubMed search query (MeSH terms, keywords). Example: "cognitive neuroscience[MeSH] OR psycholinguistics"
+    api_key: null # NCBI API key (optional). Register at https://www.ncbi.nlm.nih.gov/account/
+    reldate: 2 # Retrieve papers added to PubMed within the last N days.
+  europepmc:
+    query: null # Europe PMC search query. Example: "cognitive neuroscience"
+    reldate: 2 # Retrieve papers published within the last N days.
 
 email:
   sender: ??? # The email account of the SMTP server that sends you email. Example: abc@qq.com
@@ -18,6 +28,10 @@ email:
   smtp_server: ??? # The SMTP server that sends the email. Ask your email provider (Gmail, QQ, Outlook, ...) for its SMTP server. Example: smtp.qq.com
   smtp_port: ??? # The port of SMTP server. Example: 465
   sender_password: ??? # The password of the sender account. Note that it's not necessarily the password for logging in the e-mail client, but the authentication code for SMTP service. Ask your email provider for this. Example: abcdefghijklmn
+  # Optional: Resend HTTP API (recommended for cloud containers where SMTP ports are blocked).
+  # Sign up at https://resend.com → API Keys → Create API Key. Free tier: 100 emails/day.
+  resend_api_key: null # Example: re_xxxxxxxxxxxx
+  resend_sender: null  # Verified sender address. If null, falls back to "Daily arXiv <onboarding@resend.dev>"
 
 llm:
   api:
@@ -32,6 +46,7 @@ llm:
 reranker:
   local:
     model: jinaai/jina-embeddings-v5-text-nano # The Hugging Face model name of the local embedding model. Example: jinaai/jina-embeddings-v5-text-nano
+    revision: 4c1f9846bb85490df1d9e535834cf00ceb33823b # 釘選至 2026-02-17 版本；2026-04-09 的 dc57ebe6 更新後 custom_st.py 與 sentence-transformers 的 tokenizer_args 產生 trust_remote_code 衝突
     encode_kwargs:
     # The kwargs for the encode method of the local embedding model. Details see [here](https://www.sbert.net/docs/package_reference/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode)
       task: retrieval

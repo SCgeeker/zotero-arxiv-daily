@@ -1,12 +1,14 @@
 import tarfile
 import re
 import glob
+import pathlib
 import smtplib
 from email.header import Header
 from email.mime.text import MIMEText
 from email.utils import parseaddr, formataddr
 from loguru import logger
 import datetime
+import httpx
 from omegaconf import DictConfig
 import pymupdf
 import pymupdf.layout
@@ -89,15 +91,89 @@ def extract_markdown_from_pdf(file_path:str) -> str:
     return pymupdf4llm.to_markdown(file_path,use_ocr=False,header=False,footer=False,ignore_code=True)
 
 def glob_match(path:str, pattern:str) -> bool:
-    re_pattern = glob.translate(pattern,recursive=True)
-    return re.match(re_pattern, path) is not None
+    # glob.translate() 僅 Python 3.13+ 支援
+    # 逐字元將 glob pattern 轉為 regex（相容 Python 3.12）
+    if not pattern:
+        return path == ""
+    i, n = 0, len(pattern)
+    parts = []
+    while i < n:
+        c = pattern[i]
+        if c == '*':
+            if i + 1 < n and pattern[i + 1] == '*':
+                # **/ → 零個或多個目錄前綴；** → 任意字元
+                if i + 2 < n and pattern[i + 2] == '/':
+                    parts.append('(?:.+/)?')
+                    i += 3
+                else:
+                    parts.append('.*')
+                    i += 2
+            else:
+                parts.append('[^/]*')
+                i += 1
+        elif c == '?':
+            parts.append('[^/]')
+            i += 1
+        elif c == '[':
+            # 找到對應的 ] 並直接保留 character class
+            j = i + 1
+            if j < n and pattern[j] == '!':
+                j += 1
+            if j < n and pattern[j] == ']':
+                j += 1
+            while j < n and pattern[j] != ']':
+                j += 1
+            if j < n:
+                cls = pattern[i:j + 1].replace('!', '^', 1) if pattern[i + 1] == '!' else pattern[i:j + 1]
+                parts.append(cls)
+                i = j + 1
+            else:
+                parts.append(re.escape(c))
+                i += 1
+        else:
+            parts.append(re.escape(c))
+            i += 1
+    return re.fullmatch(''.join(parts), path) is not None
 
-def send_email(config:DictConfig, html:str):
+def send_email(config: DictConfig, html: str):
+    resend_api_key = config.email.get('resend_api_key', None)
+    if resend_api_key:
+        _send_email_resend(config, html, resend_api_key)
+    else:
+        _send_email_smtp(config, html)
+
+
+def _send_email_resend(config: DictConfig, html: str, api_key: str):
+    """透過 Resend HTTP API 寄信（不需要 SMTP port，適用於 TWCC 容器）"""
+    receiver = config.email.receiver
+    # Resend 的 from 必須是已驗證網域；若未設定（或設為 null），改用 Resend 測試地址
+    sender = config.email.get('resend_sender') or 'Daily arXiv <onboarding@resend.dev>'
+    today = datetime.datetime.now().strftime('%Y/%m/%d')
+
+    response = httpx.post(
+        'https://api.resend.com/emails',
+        headers={'Authorization': f'Bearer {api_key}'},
+        json={
+            'from': sender,
+            'to': [receiver],
+            'subject': f'Daily arXiv {today}',
+            'html': html,
+        },
+        timeout=30.0,
+    )
+    if response.status_code not in (200, 201):
+        raise RuntimeError(f"Resend API 錯誤 {response.status_code}: {response.text}")
+    logger.info(f"Email sent via Resend: id={response.json().get('id')}")
+
+
+def _send_email_smtp(config: DictConfig, html: str):
+    """透過 SMTP 寄信（本機或 GitHub Actions runner 使用，TWCC 容器內會失敗）"""
     sender = config.email.sender
     receiver = config.email.receiver
     password = config.email.sender_password
     smtp_server = config.email.smtp_server
     smtp_port = config.email.smtp_port
+
     def _format_addr(s):
         name, addr = parseaddr(s)
         return formataddr((Header(name, 'utf-8').encode(), addr))

@@ -1,26 +1,42 @@
 zotero:
   user_id: ${oc.env:ZOTERO_ID}
   api_key: ${oc.env:ZOTERO_KEY}
-  include_path: null # Or set a list of glob patterns, e.g. ["2026/survey/**","2026/reading-group/**"]
+  include_path: ["Programs_Reference/**"] # Or set a list of glob patterns, e.g. ["2026/survey/**","2026/reading-group/**"]
+  ignore_path: ["+/**","Programs_Reference/Undergraduate_projects/**","Programs_Reference/side_consciousness/**", "Open_Reproducibility/**", "better research practice/**"]
 
 email:
   sender: ${oc.env:SENDER}
   receiver: ${oc.env:RECEIVER}
-  smtp_server: smtp.qq.com
-  smtp_port: 465
+  smtp_server: smtp.gmail.com
+  smtp_port: 587
   sender_password: ${oc.env:SENDER_PASSWORD}
+  resend_api_key: ${oc.env:RESEND_API_KEY,null}
 
 llm:
   api:
     key: ${oc.env:OPENAI_API_KEY}
     base_url: ${oc.env:OPENAI_API_BASE}
   generation_kwargs:
-    model: gpt-4o-mini
+    model: ${oc.env:LLM_MODEL,crystalmind}
+    max_tokens: 512
+  timeout: 300
+  language: Chinese
 
 source:
   arxiv:
-    category: ["cs.AI","cs.CV","cs.LG","cs.CL"]
+    category: ["cs.CL", "q-bio.NC", "cs.AI"]
+  osf:
+    provider: ["psyarxiv", "socarxiv"]
+  pubmed:
+    query: "psycholinguistics[MeSH] OR cognitive neuroscience[MeSH]"
+    reldate: 2
+  europepmc:
+    query: "embodied cognition OR mental simulation OR psycholinguistics"
+    reldate: 2
 
 executor:
   debug: ${oc.env:DEBUG,null}
-  source: ['arxiv']
+  source: ['arxiv', 'osf', 'pubmed', 'europepmc']
+  max_paper_num: 10
+  min_relevance: 4.0
+  send_empty: true

@@ -7,7 +7,7 @@ name = "zotero-arxiv-daily"
 version = "1.0.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "gitignore-parser>=0.1.11",
     "tiktoken>=0.8.0",
@@ -17,14 +17,15 @@ dependencies = [
     "loguru>=0.7.3",
     "pyzotero>=1.10.0",
     "scikit-learn>=1.7.1",
-    "sentence-transformers>=5.2.3",
-    "torch",
+    "sentence-transformers>=5.2.3,<5.4.0",
+    "transformers==5.5.0",
+    "torch==2.5.1",
     "openai>=2.24.0",
     "arxiv>=2.4.0",
     "pymupdf4llm>=0.3.4",
     "pymupdf-layout>=1.27.1",
     "dotenv>=0.9.9",
-    "peft>=0.18.1",
+    "peft>=0.18.1,<0.19",
     "trafilatura>=2.0.0",
 ]
 
