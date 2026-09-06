@@ -14,6 +14,7 @@ from .construct_email import render_email
 from .utils import send_email
 from openai import OpenAI
 from tqdm import tqdm
+import httpx
 
 
 # Zotero API 偶發的暫時性狀態碼。pyzotero 的 ERROR_CODES 未涵蓋任何 5xx，
@@ -44,11 +45,12 @@ def retry_on_transient_error(
 ):
     """對 Zotero 暫時性錯誤做指數退避重試。
 
-    只重試 5xx 與連線失敗；4xx（設定錯誤、認證失敗）與非 pyzotero 例外
-    一律立刻拋出，避免把真正的錯誤拖成五倍時間。重試用盡後原樣拋出最後
+    重試 5xx、連線失敗、以及 httpx 傳輸層逾時（ReadTimeout 等）；
+    4xx（設定錯誤、認證失敗）一律立刻拋出。重試用盡後原樣拋出最後
     一個例外，讓 workflow 明確失敗而不是靜默回傳空結果。
     """
     sleep = sleep or time.sleep
+    last_exc: Exception | None = None
     for attempt in range(1, max_attempts + 1):
         try:
             return fn()
@@ -58,12 +60,19 @@ def retry_on_transient_error(
             )
             if not retryable or attempt == max_attempts:
                 raise
-            delay = base_delay * (2 ** (attempt - 1))
-            logger.warning(
-                f"{desc} transient failure ({type(e).__name__}), "
-                f"attempt {attempt}/{max_attempts}, retrying in {delay:.0f}s"
-            )
-            sleep(delay)
+            last_exc = e
+        except httpx.TransportError as e:
+            # pyzotero does not wrap transport-level errors (ReadTimeout,
+            # ConnectTimeout, ConnectError …) so they leak as raw httpx exceptions.
+            if attempt == max_attempts:
+                raise
+            last_exc = e
+        delay = base_delay * (2 ** (attempt - 1))
+        logger.warning(
+            f"{desc} transient failure ({type(last_exc).__name__}), "
+            f"attempt {attempt}/{max_attempts}, retrying in {delay:.0f}s"
+        )
+        sleep(delay)
 
 
 def normalize_path_patterns(patterns: list[str] | ListConfig | None, config_key: str) -> list[str] | None:
